@@ -11,6 +11,22 @@ logger = logging.getLogger(__file__)
 
 
 def get_product_list(page, campaign_id, access_token):
+    """
+    Получает список продуктов из кампании на площадке Яндекс.Маркет.
+
+    Аргументы:
+        page (str): Токен страницы для запроса следующей порции продуктов.
+        campaign_id (str): Идентификатор кампании на Яндекс.Маркет.
+        access_token (str): Токен доступа к API Яндекс.Маркет.
+
+    Возвращает:
+        dict: Словарь с информацией о продуктах.
+
+    Пример:
+        >>> get_product_list("next_page_token", "campaign_123", "access_token_123")
+        {'product1': {...}, 'product2': {...}, ...}
+
+    """
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -30,6 +46,22 @@ def get_product_list(page, campaign_id, access_token):
 
 
 def update_stocks(stocks, campaign_id, access_token):
+    """
+    Обновляет информацию об остатках товаров на площадке Яндекс.Маркет.
+
+    Аргументы:
+        stocks (list): Список данных об остатках товаров для обновления.
+        campaign_id (str): Идентификатор кампании на Яндекс.Маркет.
+        access_token (str): Токен доступа к API Яндекс.Маркет.
+
+    Возвращает:
+        dict: Словарь с результатом обновления остатков.
+
+    Пример:
+        >>> update_stocks([...], "campaign_123", "access_token_123")
+        {'status': 'success', 'message': 'Stocks updated successfully'}
+
+    """
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -46,6 +78,22 @@ def update_stocks(stocks, campaign_id, access_token):
 
 
 def update_price(prices, campaign_id, access_token):
+    """
+    Обновляет цены на товары на площадке Яндекс.Маркет.
+
+    Аргументы:
+        prices (list): Список данных о ценах товаров для обновления.
+        campaign_id (str): Идентификатор кампании на Яндекс.Маркет.
+        access_token (str): Токен доступа к API Яндекс.Маркет.
+
+    Возвращает:
+        dict: Словарь с результатом обновления цен.
+
+    Пример:
+        >>> update_price([...], "campaign_123", "access_token_123")
+        {'status': 'success', 'message': 'Prices updated successfully'}
+
+    """
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -62,7 +110,21 @@ def update_price(prices, campaign_id, access_token):
 
 
 def get_offer_ids(campaign_id, market_token):
-    """Получить артикулы товаров Яндекс маркета"""
+    """
+    Получает артикулы товаров из кампании на площадке Яндекс.Маркет.
+
+    Аргументы:
+        campaign_id (str): Идентификатор кампании на Яндекс.Маркет.
+        market_token (str): Токен доступа к API Яндекс.Маркет.
+
+    Возвращает:
+        list: Список артикулов товаров.
+
+    Пример:
+        >>> get_offer_ids("campaign_123", "market_token_123")
+        ['sku1', 'sku2', ...]
+
+    """
     page = ""
     product_list = []
     while True:
@@ -78,7 +140,22 @@ def get_offer_ids(campaign_id, market_token):
 
 
 def create_stocks(watch_remnants, offer_ids, warehouse_id):
-    # Уберем то, что не загружено в market
+    """
+    Создает данные об остатках товаров для обновления на площадке Яндекс.Маркет.
+
+    Аргументы:
+        watch_remnants (list): Список данных о товарах и остатках.
+        offer_ids (list): Список артикулов товаров на площадке.
+        warehouse_id (str): Идентификатор склада.
+
+    Возвращает:
+        list: Список данных об остатках товаров для обновления.
+
+    Пример:
+        >>> create_stocks([...], ['sku1', 'sku2', ...], "warehouse_123")
+        [{'sku': 'sku1', 'warehouseId': 'warehouse_123', 'items': [{'count': 10, 'type': 'FIT', 'updatedAt': '2024-04-01T12:00:00Z'}]}, ...]
+
+    """
     stocks = list()
     date = str(datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z")
     for watch in watch_remnants:
@@ -104,7 +181,6 @@ def create_stocks(watch_remnants, offer_ids, warehouse_id):
                 }
             )
             offer_ids.remove(str(watch.get("Код")))
-    # Добавим недостающее из загруженного:
     for offer_id in offer_ids:
         stocks.append(
             {
@@ -123,26 +199,52 @@ def create_stocks(watch_remnants, offer_ids, warehouse_id):
 
 
 def create_prices(watch_remnants, offer_ids):
+    """
+    Создает данные о ценах товаров для обновления на площадке Яндекс.Маркет.
+
+    Аргументы:
+        watch_remnants (list): Список данных о товарах и ценах.
+        offer_ids (list): Список артикулов товаров на площадке.
+
+    Возвращает:
+        list: Список данных о ценах товаров для обновления.
+
+    Пример:
+        >>> create_prices([...], ['sku1', 'sku2', ...])
+        [{'id': 'sku1', 'price': {'value': 5990, 'currencyId': 'RUR'}}, ...]
+
+    """
     prices = []
     for watch in watch_remnants:
         if str(watch.get("Код")) in offer_ids:
             price = {
                 "id": str(watch.get("Код")),
-                # "feed": {"id": 0},
                 "price": {
                     "value": int(price_conversion(watch.get("Цена"))),
-                    # "discountBase": 0,
                     "currencyId": "RUR",
-                    # "vat": 0,
                 },
-                # "marketSku": 0,
-                # "shopSku": "string",
             }
             prices.append(price)
     return prices
 
 
 async def upload_prices(watch_remnants, campaign_id, market_token):
+    """
+    Загружает цены на товары на площадку Яндекс.Маркет.
+
+    Аргументы:
+        watch_remnants (list): Список данных о товарах и ценах.
+        campaign_id (str): Идентификатор кампании на Яндекс.Маркет.
+        market_token (str): Токен доступа к API Яндекс.Маркет.
+
+    Возвращает:
+        list: Список данных о ценах загруженных товаров.
+
+    Пример:
+        >>> upload_prices([...], "campaign_123", "market_token_123")
+        [{'id': 'sku1', 'price': {'value': 5990, 'currencyId': 'RUR'}}, ...]
+
+    """
     offer_ids = get_offer_ids(campaign_id, market_token)
     prices = create_prices(watch_remnants, offer_ids)
     for some_prices in list(divide(prices, 500)):
@@ -150,7 +252,25 @@ async def upload_prices(watch_remnants, campaign_id, market_token):
     return prices
 
 
-async def upload_stocks(watch_remnants, campaign_id, market_token, warehouse_id):
+async def upload_stocks(watch_remnants, campaign_id, market_token,
+                        warehouse_id):
+    """
+    Загружает остатки товаров на площадку Яндекс.Маркет.
+
+    Аргументы:
+        watch_remnants (list): Список данных о товарах и остатках.
+        campaign_id (str): Идентификатор кампании на Яндекс.Маркет.
+        market_token (str): Токен доступа к API Яндекс.Маркет.
+        warehouse_id (str): Идентификатор склада.
+
+    Возвращает:
+        tuple: Кортеж из двух списков - список данных об остатках загруженных товаров и список всех данных об остатках.
+
+    Пример:
+        >>> await upload_stocks([...], "campaign_123", "market_token_123", "warehouse_123")
+        ([{'sku': 'sku1', 'warehouse
+
+    """
     offer_ids = get_offer_ids(campaign_id, market_token)
     stocks = create_stocks(watch_remnants, offer_ids, warehouse_id)
     for some_stock in list(divide(stocks, 2000)):
@@ -171,22 +291,16 @@ def main():
 
     watch_remnants = download_stock()
     try:
-        # FBS
         offer_ids = get_offer_ids(campaign_fbs_id, market_token)
-        # Обновить остатки FBS
         stocks = create_stocks(watch_remnants, offer_ids, warehouse_fbs_id)
         for some_stock in list(divide(stocks, 2000)):
             update_stocks(some_stock, campaign_fbs_id, market_token)
-        # Поменять цены FBS
         upload_prices(watch_remnants, campaign_fbs_id, market_token)
 
-        # DBS
         offer_ids = get_offer_ids(campaign_dbs_id, market_token)
-        # Обновить остатки DBS
         stocks = create_stocks(watch_remnants, offer_ids, warehouse_dbs_id)
         for some_stock in list(divide(stocks, 2000)):
             update_stocks(some_stock, campaign_dbs_id, market_token)
-        # Поменять цены DBS
         upload_prices(watch_remnants, campaign_dbs_id, market_token)
     except requests.exceptions.ReadTimeout:
         print("Превышено время ожидания...")
